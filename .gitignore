@@ -1,1 +1,3 @@
 **/shapefiles
+*.img
+*.DS_Store

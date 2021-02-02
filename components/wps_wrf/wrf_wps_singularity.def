@@ -1,23 +1,36 @@
-FROM dtcenter/base_image:latest
-MAINTAINER Jamie Wolff <jwolff@ucar.edu> or Michelle Harrold <harrold@ucar.edu>
-# 
-# This Dockerfile compiles WRF from source during "docker build" step
-USER comuser
-RUN umask 0002 \
+# Sigularity definition file for WRF/WPS version 4.0.
+# Builds from base image in components/base
+Bootstrap: localimage
+From: /container-nwp/components/base/base-image.img
+
+%help
+Singularity definition for the WRFV4.0 image.
+
+Contains: Minimal CentOS7 + Development Tools + WRF/WPS 4.0 + dependencies
+
+%labels
+Maintainer Tyler Wixtrom <tyler.wixtrom@ttu.edu>
+Application_Stack Development Tools + WRF/WPS 4.0
+Image_Version 1.0
+
+%post
+umask 0002 \
  && mkdir /comsoftware/wrf
-WORKDIR /comsoftware/wrf
-ENV WRF_VERSION 4.1.3
-ENV WPS_VERSION 4.1
+cd /comsoftware/wrf
+export WRF_VERSION="4.1.2"
+export WPS_VERSION="4.1"
 #
 # Download original sources
 #
-RUN umask 0002 \
+umask 0002 \
  && curl -SL https://github.com/wrf-model/WRF/archive/v${WRF_VERSION}.tar.gz | tar zxC /comsoftware/wrf \
  && curl -SL https://github.com/wrf-model/WPS/archive/v${WPS_VERSION}.tar.gz | tar zxC /comsoftware/wrf
+
 #
 # Set environment for interactive container shells
 #
-RUN echo export LDFLAGS="-lm" >> /home/.bashrc \
+cd /comsoftware/wrf
+echo export LDFLAGS="-lm" >> /home/.bashrc \
  && echo export LD_LIBRARY_PATH="/usr/lib64/openmpi/lib:/comsoftware/libs/netcdf/lib" >> /home/.bashrc \
  && echo export PATH="/usr/lib64/openmpi/bin:$PATH" >> /home/.bashrc \
  && echo setenv LDFLAGS "-lm" >> /home/.cshrc \
@@ -26,8 +39,8 @@ RUN echo export LDFLAGS="-lm" >> /home/.bashrc \
 #
 # Build WRF first
 # input 34 and 1 to configure script alternative line = && echo -e "34\r1\r" | ./configure
-# 
-RUN umask 0002 \ 
+#
+umask 0002 \
  && export NETCDF=/comsoftware/libs/netcdf/ \
  && export JASPERINC=/usr/include/jasper/ \
  && export JASPERLIB=/usr/lib64/ \
@@ -36,34 +49,41 @@ RUN umask 0002 \
  && ./configure <<< $'34\r1\r' \
  && sed -i -e '/^DM_CC/ s/$/ -DMPI2_SUPPORT/' ./configure.wrf \
  && sed -i '/BUILD_RRTMG_FAST/d' ./configure.wrf \
- && /bin/csh ./compile em_real > compile_wrf_arw_opt34.1.log 2>&1
-# Check build success
-RUN ls /comsoftware/wrf/WRF-${WRF_VERSION}/main/real.exe /comsoftware/wrf/WRF-${WRF_VERSION}/main/wrf.exe
-#
+ && /bin/csh ./compile em_real
+ #> compile_wrf_arw_opt34.1.log 2>&1
+
 # Build WPS second
 #
 # input 1 to configure script (gfortran serial build)
-RUN umask 0002 \
- && ln -sf WRF-${WRF_VERSION} WRF \
- && cd ./WPS-${WPS_VERSION} \
+export WRF_DIR=/comsoftware/wrf/WRF-${WRF_VERSION}
+umask 0002 \
+ && cd /comsoftware/wrf/WPS-${WPS_VERSION} \
  && echo export NETCDF=/comsoftware/libs/netcdf/ \
  && export JASPERINC=/usr/include/jasper/ \
  && export JASPERLIB=/usr/lib64/ \
  && ./configure <<< $'1\r' \
  && sed -i -e 's/-L$(NETCDF)\/lib/-L$(NETCDF)\/lib -lnetcdff /' ./configure.wps \
- && /bin/csh ./compile > compile_wps.log 2>&1
-# Check build success
-RUN ls /comsoftware/wrf/WPS-${WPS_VERSION}/metgrid.exe /comsoftware/wrf/WPS-${WPS_VERSION}/ungrib.exe /comsoftware/wrf/WPS-${WPS_VERSION}/geogrid.exe
-#
-ENV LD_LIBRARY_PATH /usr/lib64/openmpi/lib:/comsoftware/libs/netcdf/lib
-ENV PATH  /usr/lib64/openmpi/bin:$PATH
+ && /bin/csh ./compile
+ #> compile_wps.log 2>&1
+
+export LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:/comsoftware/libs/netcdf/lib
+export PATH=/usr/lib64/openmpi/bin:$PATH
 #
 # copy in a couple custom scripts...apparently there's no way to docker COPY with non-root permissions....
 #
-USER root
-COPY docker-clean /comsoftware/wrf
-COPY run-wps-wrf /comsoftware/wrf
-RUN chmod +x /comsoftware/wrf/docker-clean \
- && chmod +x /comsoftware/wrf/run-wps-wrf \
- && chown comuser:comusers /comsoftware/wrf/docker-clean \
- && chown comuser:comusers /comsoftware/wrf/run-wps-wrf
+# USER root
+# COPY docker-clean /comsoftware/wrf
+# COPY run-wps-wrf /comsoftware/wrf
+# RUN chmod +x /comsoftware/wrf/docker-clean \
+#  && chmod +x /comsoftware/wrf/run-wps-wrf \
+#  && chown comuser:comusers /comsoftware/wrf/docker-clean \
+#  && chown comuser:comusers /comsoftware/wrf/run-wps-wrf
+
+mkdir -p /lustre
+mkdir -p /data/WPS_GEOG
+
+%environment
+export LDFLAGS="-lm"
+export LD_LIBRARY_PATH="/usr/lib64/openmpi/lib:/comsoftware/libs/netcdf/lib"
+export PATH="/usr/lib64/openmpi/bin:$PATH"
+export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
