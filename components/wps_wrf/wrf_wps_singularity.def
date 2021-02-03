@@ -1,7 +1,7 @@
 # Sigularity definition file for WRF/WPS version 4.1.
 # Builds from base image in components/base
 Bootstrap: localimage
-From: /container-nwp/components/base/base-image.img
+From: /nwp-container/components/base/base-image.img
 
 %help
 Singularity definition for the WRFV4.0 image.
