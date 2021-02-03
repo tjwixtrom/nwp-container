@@ -1,4 +1,4 @@
-# Sigularity definition file for WRF/WPS version 4.0.
+# Sigularity definition file for WRF/WPS version 4.1.
 # Builds from base image in components/base
 Bootstrap: localimage
 From: /container-nwp/components/base/base-image.img
@@ -17,6 +17,8 @@ Image_Version 1.0
 umask 0002 \
  && mkdir /comsoftware/wrf
 cd /comsoftware/wrf
+
+# set at end of compile too
 export WRF_VERSION="4.1.2"
 export WPS_VERSION="4.1"
 #
@@ -68,22 +70,20 @@ umask 0002 \
 
 export LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:/comsoftware/libs/netcdf/lib
 export PATH=/usr/lib64/openmpi/bin:$PATH
-#
-# copy in a couple custom scripts...apparently there's no way to docker COPY with non-root permissions....
-#
-# USER root
-# COPY docker-clean /comsoftware/wrf
-# COPY run-wps-wrf /comsoftware/wrf
-# RUN chmod +x /comsoftware/wrf/docker-clean \
-#  && chmod +x /comsoftware/wrf/run-wps-wrf \
-#  && chown comuser:comusers /comsoftware/wrf/docker-clean \
-#  && chown comuser:comusers /comsoftware/wrf/run-wps-wrf
+
+# remove links from run directory
+rm /comsoftware/wrf/WRF-${WRF_VERSION}/run/*.exe
 
 mkdir -p /lustre
-mkdir -p /data/WPS_GEOG
+
+%files
+/container-nwp/components/wps_wrf/sub_wrf.bash /data/scripts/sub_wrf.bash
+/container-nwp/components/wps_wrf/run_wrf.bash /data/scripts/run_wrf.bash
 
 %environment
 export LDFLAGS="-lm"
 export LD_LIBRARY_PATH="/usr/lib64/openmpi/lib:/comsoftware/libs/netcdf/lib"
 export PATH="/usr/lib64/openmpi/bin:$PATH"
 export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
+export WRF_VERSION="4.1.2"
+export WPS_VERSION="4.1"
