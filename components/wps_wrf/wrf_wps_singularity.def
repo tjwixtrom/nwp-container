@@ -77,8 +77,8 @@ rm /comsoftware/wrf/WRF-${WRF_VERSION}/run/*.exe
 mkdir -p /lustre
 
 %files
-/container-nwp/components/wps_wrf/sub_wrf.bash /data/scripts/sub_wrf.bash
-/container-nwp/components/wps_wrf/run_wrf.bash /data/scripts/run_wrf.bash
+/nwp-container/components/wps_wrf/sub_wrf.bash /data/scripts/sub_wrf.bash
+/nwp-container/components/wps_wrf/run_wrf.bash /data/scripts/run_wrf.bash
 
 %environment
 export LDFLAGS="-lm"
