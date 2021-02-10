@@ -1,0 +1,64 @@
+# Sigularity definition file for GSI.
+# Builds from base image in components/base
+Bootstrap: localimage
+From: /nwp-container/components/base/base-image.img
+
+%help
+Singularity definition for the GSI image.
+
+Contains: Minimal CentOS7 + Development Tools + GSI + dependencies
+
+%labels
+Maintainer Tyler Wixtrom <tyler.wixtrom@ttu.edu>
+Application_Stack Development Tools + GSI
+Image_Version 1.0
+
+%post
+umask 0002 \
+ && mkdir -p /comsoftware/gsi
+cd /comsoftware/gsi
+export GSI_VERSION=3.7
+export ENKF_VERSION=1.3
+
+# Make with this many parallel tasks
+export J=4
+
+# Download source code
+#
+umask 0002 \
+ && curl -SL https://dtcenter.org/sites/default/files/comGSIv${GSI_VERSION}_EnKFv${ENKF_VERSION}.tar.gz | tar -xzC /comsoftware/gsi
+# Set necessary environment variables for GSI build
+export LDFLAGS="-lm"
+export NETCDF=/comsoftware/libs/netcdf/
+export LD_LIBRARY_PATH="/usr/lib:/comsoftware/libs/netcdf/lib"
+export PATH="/usr/lib64/openmpi/bin:$PATH"
+export HDF5_ROOT=${NETCDF}
+#
+# Prep GSI build
+#
+umask 0002 \
+ && mkdir /comsoftware/gsi/gsi_build \
+ && cd /comsoftware/gsi/gsi_build \
+ && cmake /comsoftware/gsi/comGSIv${GSI_VERSION}_EnKFv${ENKF_VERSION}
+
+#
+# Fix a few GSI bugs
+#
+umask 0002 \
+ && sed -i 's/wij(1)/wij/g' /comsoftware/gsi/comGSIv3.7_EnKFv1.3/src/setuplight.f90 \
+ && sed -i 's/$/ -L\/comsoftware\/libs\/netcdf\/lib/g' /comsoftware/gsi/gsi_build/src/CMakeFiles/gsi.x.dir/link.txt \
+ && sed -i 's/$/ -L\/comsoftware\/libs\/netcdf\/lib/g' /comsoftware/gsi/gsi_build/src/enkf/CMakeFiles/enkf_wrf.x.dir/link.txt
+#
+# Build GSI
+#
+umask 0002 \
+ && cd /comsoftware/gsi/gsi_build \
+ && make -j ${J} || echo "I think your build failed yo!"
+
+%environment
+export LDFLAGS="-lm"
+export LD_LIBRARY_PATH="/usr/lib64/openmpi/lib:/comsoftware/libs/netcdf/lib"
+export PATH="/usr/lib64/openmpi/bin:$PATH"
+export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
+export NETCDF=/comsoftware/libs/netcdf/
+export HDF5_ROOT=${NETCDF}
