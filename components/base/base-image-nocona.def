@@ -66,9 +66,9 @@ export NETCDF=/comsoftware/libs/netcdf
 mkdir -p /comsoftware/libs/openmpi/BUILD_DIR
 source /opt/rh/devtoolset-8/enable \
  && cd /comsoftware/libs/openmpi/BUILD_DIR \
- && curl -L -O https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.0.tar.gz \
- && tar -xf openmpi-4.0.0.tar.gz \
- && cd openmpi-4.0.0 \
+ && curl -L -O https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.4.tar.gz \
+ && tar -xf openmpi-4.0.4.tar.gz \
+ && cd openmpi-4.0.4 \
  && ./configure --prefix=/usr/local &> /comsoftware/libs/build_log_openmpi_config \
  && echo dummy printout to keep travis happy openmpi config \
  && make all install \

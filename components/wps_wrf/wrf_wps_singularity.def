@@ -1,16 +1,16 @@
 # Sigularity definition file for WRF/WPS version 4.1.
 # Builds from base image in components/base
 Bootstrap: localimage
-From: /nwp-container/components/base/base-image.img
+From: /nwp-container/components/base/base-image-nocona.img
 
 %help
-Singularity definition for the WRFV4.0 image.
+Singularity definition for the WRFV4.0 image to be run on Nocona Queue (OpenMPI 4.0.4).
 
-Contains: Minimal CentOS7 + Development Tools + WRF/WPS 4.0 + dependencies
+Contains: Minimal CentOS7 + Development Tools + WRF/WPS 4.1 + dependencies
 
 %labels
 Maintainer Tyler Wixtrom <tyler.wixtrom@ttu.edu>
-Application_Stack Development Tools + WRF/WPS 4.0
+Application_Stack Development Tools + WRF/WPS 4.1
 Image_Version 1.0
 
 %post

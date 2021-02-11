@@ -17,6 +17,7 @@ do
             indata)            indata=${VALUE} ;;
             met_em)            met_em=${VALUE} ;;
             vtable)            vtable=${VALUE} ;;
+	    jid)                  jid=${VALUE} ;;
             *)
     esac
 
@@ -28,17 +29,19 @@ done
 # WPS is run within the container to generate WRF input.
 if [ -n "$indata" ]; then
   # run WPS
-  cp -r /comsoftware/wrf/WPS-${WPS_VERSION} ${dir}
-  cp ${wps_nml} ${dir}/WPS-${WPS_VERSION}/namelist.wps
-  mkdir -p ${dir}/WPS-${WPS_VERSION}/data
-  cp ${indata}/* ${dir}/WPS-${WPS_VERSION}/data
-  cd ${dir}/WPS-${WPS_VERSION}
-  /bin/csh ${dir}/WPS-${WPS_VERSION}/link_grib.csh ${dir}/WPS-${WPS_VERSION}/data/*
-  cp ${dir}/WPS-${WPS_VERSION}/ungrib/Variable_Tables/${vtable} ${dir}/WPS-${WPS_VERSION}/Vtable
-  ${dir}/WPS-${WPS_VERSION}/ungrib.exe
-  ${dir}/WPS-${WPS_VERSION}/geogrid.exe
-  ${dir}/WPS-${WPS_VERSION}/metgrid.exe
-  met_em_dir=${dir}/WPS-${WPS_VERSION}
+  mkdir ${dir}/WPS
+  cd ${dir}/WPS
+  ln -sf /comsoftware/wrf/WPS-${WPS_VERSION}/* ${dir}/WPS
+  rm ${dir}/WPS/namelist.wps
+  cp ${wps_nml} ${dir}/WPS/namelist.wps
+  mkdir -p ${dir}/WPS/data
+  cp ${indata}/* ${dir}/WPS/data
+  /bin/csh ${dir}/WPS/link_grib.csh ${dir}/WPS/data/*
+  ln -sf ${dir}/WPS/ungrib/Variable_Tables/${vtable} ${dir}/WPS/Vtable
+  ${dir}/WPS/ungrib.exe
+  ${dir}/WPS/geogrid.exe
+  ${dir}/WPS/metgrid.exe
+  met_em_dir=${dir}/WPS
 else
   # don't run WPS and assume met_em file location is supplied
   met_em_dir=${met_em}
@@ -46,25 +49,14 @@ fi
 
 # Copy WRF run directory and executables
 cd ${dir}
-cp -r /comsoftware/wrf/WRF-${WRF_VERSION}/run ${dir}
-cp /comsoftware/wrf/WRF-${WRF_VERSION}/main/*.exe ${dir}/run
-
+mkdir ${dir}/run
 cd ${dir}/run
+ln -sf /comsoftware/wrf/WRF-${WRF_VERSION}/run/* ${dir}/run
+ln -sf /comsoftware/wrf/WRF-${WRF_VERSION}/main/*.exe ${dir}/run
 
 # Link met_em files
 ln -sf ${met_em_dir}/met_em* ${dir}/run
 
 # copy in supplied namelist
+rm ${dir}/run/namelist.input
 cp ${wrf_nml} ${dir}/run/namelist.input
-
-# run real.exe
-mpirun -np ${nproc} ${dir}/run/real.exe
-cat ${dir}/run/rsl.out.* > ${dir}/rslout_real.log
-cat ${dir}/run/rsl.error.* > ${dir}rslerror_real.log
-rm ${dir}/run/rsl.*
-
-# run wrf.exe
-mpirun -np ${nproc} ${dir}/run/wrf.exe
-cat ${dir}/run/rsl.out.* > ${dir}rslout_wrf.log
-cat ${dir}/run/rsl.error.* > ${dir}rslerror_wrf.log
-rm ${dir}/run/rsl.*
