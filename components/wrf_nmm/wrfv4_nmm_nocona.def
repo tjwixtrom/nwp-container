@@ -1,0 +1,93 @@
+# Sigularity definition file for WRF/WPS version 4.1.
+# Builds from base image in components/base
+Bootstrap: localimage
+From: /nwp-container/components/base/base-image-nocona.img
+
+%help
+Singularity definition for the WRFV4.1 image to be run on Nocona Queue (OpenMPI 4.0.4) with NMM core.
+
+Contains: Minimal CentOS7 + Development Tools + WRF/WPS 4.1 + dependencies
+
+%labels
+Maintainer Tyler Wixtrom <tyler.wixtrom@ttu.edu>
+Application_Stack Development Tools + WRF/WPS 4.1
+Image_Version 1.0
+
+%post
+umask 0002 \
+ && mkdir /comsoftware/wrf
+cd /comsoftware/wrf
+
+# set at end of compile too
+export WRF_VERSION="4.1.2"
+export WPS_VERSION="4.1"
+export WRF_NMM_CORE=1
+export WRF_NMM_NEST=1
+
+#
+# Download original sources
+#
+umask 0002 \
+ && curl -SL https://github.com/wrf-model/WRF/archive/v${WRF_VERSION}.tar.gz | tar zxC /comsoftware/wrf \
+ && curl -SL https://github.com/wrf-model/WPS/archive/v${WPS_VERSION}.tar.gz | tar zxC /comsoftware/wrf
+
+#
+# Set environment for interactive container shells
+#
+cd /comsoftware/wrf
+echo export LDFLAGS="-lm" >> /home/.bashrc \
+ && echo export LD_LIBRARY_PATH="/usr/lib64/openmpi/lib:/comsoftware/libs/netcdf/lib" >> /home/.bashrc \
+ && echo export PATH="/usr/lib64/openmpi/bin:$PATH" >> /home/.bashrc \
+ && echo setenv LDFLAGS "-lm" >> /home/.cshrc \
+ && echo setenv LD_LIBRARY_PATH "/usr/lib64/openmpi/lib:/comsoftware/libs/netcdf/lib" >> /home/.cshrc \
+ && echo setenv PATH "/usr/lib64/openmpi/bin:$PATH" >> /home/.cshrc
+#
+# Build WRF first
+# input 34 and 1 to configure script alternative line = && echo -e "34\r1\r" | ./configure
+#
+umask 0002 \
+ && export NETCDF=/comsoftware/libs/netcdf/ \
+ && export JASPERINC=/usr/include/jasper/ \
+ && export JASPERLIB=/usr/lib64/ \
+ && export J='-j 4' \
+ && cd ./WRF-${WRF_VERSION} \
+ && ./configure <<< $'34\r1\r' \
+ && sed -i -e '/^DM_CC/ s/$/ -DMPI2_SUPPORT/' ./configure.wrf \
+ && sed -i '/BUILD_RRTMG_FAST/d' ./configure.wrf \
+ && /bin/csh ./compile nmm_real > compile_wrf_nmm_opt34.1.log 2>&1
+
+# Build WPS second
+#
+# input 1 to configure script (gfortran serial build)
+export WRF_DIR=/comsoftware/wrf/WRF-${WRF_VERSION}
+umask 0002 \
+ && cd /comsoftware/wrf/WPS-${WPS_VERSION} \
+ && echo export NETCDF=/comsoftware/libs/netcdf/ \
+ && export JASPERINC=/usr/include/jasper/ \
+ && export JASPERLIB=/usr/lib64/ \
+ && ./configure <<< $'3\r' \
+ && sed -i -e 's/-L$(NETCDF)\/lib/-L$(NETCDF)\/lib -lnetcdff /' ./configure.wps \
+ && /bin/csh ./compile > compile_wps.log 2>&1
+
+export LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:/comsoftware/libs/netcdf/lib
+export PATH=/usr/lib64/openmpi/bin:$PATH
+
+# remove links from run directory
+rm /comsoftware/wrf/WRF-${WRF_VERSION}/run/*.exe
+
+mkdir -p /lustre
+
+%files
+/nwp-container/components/wrf_nmm/sub_wrf_nocona.bash /data/scripts/sub_wrf_nocona.bash
+/nwp-container/components/wrf_nmm/run_wrf.bash /data/scripts/run_wrf.bash
+/nwp-container/components/wrf_nmm/run_wps.bash /data/scripts/run_wps.bash
+/nwp-container/components/wrf_nmm/namelist.wps /data/scripts/namelist.wps
+/nwp-container/components/wrf_nmm/namelist.input /data/scripts/namelist.input
+
+%environment
+export LDFLAGS="-lm"
+export LD_LIBRARY_PATH="/usr/lib64/openmpi/lib:/comsoftware/libs/netcdf/lib"
+export PATH="/usr/lib64/openmpi/bin:$PATH"
+export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
+export WRF_VERSION="4.1.2"
+export WPS_VERSION="4.1"
