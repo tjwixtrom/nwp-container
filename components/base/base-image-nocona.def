@@ -6,7 +6,7 @@ Include: yum
 
 #This help section will print out the following lines if the user runs "singularity help <image name>
 %help
- Singularity definition for the base centos7 image.
+ Singularity definition for the base centos7 image for Noconda (OpenMPI 4.0.4).
 
  Contains: Minimal CentOS7 + Common Libraries
 
@@ -55,12 +55,6 @@ export J=4
 # Other necessary environment variables
 export LD_LIBRARY_PATH=/usr/local/lib
 export NETCDF=/comsoftware/libs/netcdf
-
-# RUN groupadd comusers -g 9999
-# RUN useradd -u 9999 -g comusers -G wheel -M -d /home comuser
-# RUN mkdir /comsoftware \
-#  &&  chown -R comuser:comusers /comsoftware \
-#  &&  chmod 6755 /comsoftware
 
 # Build OpenMPI
 mkdir -p /comsoftware/libs/openmpi/BUILD_DIR
@@ -245,34 +239,10 @@ echo setenv LDFLAGS "-lm" >> /etc/csh.cshrc \
  && echo setenv LD_LIBRARY_PATH "/opt/rh/devtoolset-8/root/usr/lib/gcc/x86_64-redhat-linux/8:/usr/lib64/openmpi/lib:${NETCDF}/lib:${LD_LIBRARY_PATH}" >> /etc/csh.cshrc \
  && echo setenv PATH ".:/opt/rh/devtoolset-8/root/usr/bin:/usr/lib64/openmpi/bin:${NETCDF}/bin:$PATH" >> /etc/csh.cshrc
 
-# Set up ssh
-# RUN mkdir /home/.ssh ; echo "StrictHostKeyChecking no" > /home/.ssh/config
-# RUN mkdir -p /var/run/sshd \
-#     && ssh-keygen -A \
-#     && sed -i 's/#PermitRootLogin yes/PermitRootLogin yes/g' /etc/ssh/sshd_config \
-#     && sed -i 's/#RSAAuthentication yes/RSAAuthentication yes/g' /etc/ssh/sshd_config \
-#     && sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/g' /etc/ssh/sshd_config
-
-# Set up user home space correctly and make sure user has permissions on all stuff in /comsoftware
-# RUN chown -R comuser:comusers /home \
-#  && chmod 6755 /home
-# RUN chown -R comuser:comusers /comsoftware \
-#  && chmod -R 6755 /comsoftware
-
-
-# all root steps completed above, now below as regular userID comuser
-# USER comuser
-# WORKDIR /home
-
 export JASPERINC=/usr/include/jasper
 export JASPERLIB=/usr/lib64
 export LD_LIBRARY_PATH=/opt/rh/devtoolset-8/root/usr/lib/gcc/x86_64-redhat-linux/8:/usr/lib64/openmpi/lib:${NETCDF}/lib:${LD_LIBRARY_PATH}
 export PATH=".:/opt/rh/devtoolset-8/root/usr/bin:/usr/lib64/openmpi/bin:${NETCDF}/bin:$PATH"
-
-# RUN ssh-keygen -f /home/.ssh/id_rsa -t rsa -N '' \
-#     && chmod 600 /home/.ssh/config \
-#     && chmod 700 /home/.ssh \
-#     && cp /home/.ssh/id_rsa.pub /home/.ssh/authorized_keys
 
 %environment
 export LD_LIBRARY_PATH=/usr/local/lib
